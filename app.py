@@ -20,12 +20,23 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- CARGA DE LOGO EN LA APP (Barra Lateral) ---
+# --- CARGA DE LOGO ---
 if os.path.exists("logo.png"): st.sidebar.image("logo.png", use_container_width=True)
 elif os.path.exists("logo.jpg"): st.sidebar.image("logo.jpg", use_container_width=True)
 
 st.sidebar.write("### ⏱️ Test Rápido")
 st.sidebar.info("Diagnóstico simple para entender tu negocio.")
+
+# --- FUNCIÓN AUXILIAR: LIMPIEZA DE TEXTO (SOLUCIÓN DEL ERROR) ---
+def limpiar_texto(texto):
+    """
+    Esta función toma cualquier texto y elimina caracteres que rompen el PDF (como emojis).
+    Reemplaza los caracteres desconocidos con un signo de interrogación '?'.
+    """
+    if not isinstance(texto, str):
+        texto = str(texto)
+    # Codifica a latin-1 (compatible con FPDF) y reemplaza errores, luego vuelve a texto
+    return texto.encode('latin-1', 'replace').decode('latin-1')
 
 # --- FUNCIÓN: GUARDAR EN GOOGLE SHEETS ---
 def guardar_en_sheets(datos):
@@ -76,75 +87,73 @@ def crear_grafico_comparativo(puntajes_usuario):
     plt.close()
     return nombre
 
-# --- FUNCIÓN PDF (CENTRADO Y CON LOGO) ---
+# --- FUNCIÓN PDF ROBUSTA ---
 def generar_pdf(cliente, score_total, recs, chart_path):
     pdf = FPDF()
     pdf.add_page()
     
-    # Configurar Márgenes (2 cm a cada lado para que se vea centrado)
     pdf.set_left_margin(20)
     pdf.set_right_margin(20)
     
-    # 1. LOGO CENTRADO
-    # La hoja mide 210mm de ancho. Si el logo mide 60mm:
-    # (210 - 60) / 2 = 75 (Esa es la posición X para que quede al centro)
+    # 1. LOGO
     if os.path.exists("logo.png"):
         pdf.image("logo.png", x=75, y=10, w=60)
-        pdf.ln(25) # Bajamos el cursor para no escribir encima del logo
+        pdf.ln(25)
     elif os.path.exists("logo.jpg"):
         pdf.image("logo.jpg", x=75, y=10, w=60)
         pdf.ln(25)
     else:
-        pdf.ln(10) # Si no hay logo, bajamos un poco igual
+        pdf.ln(10)
 
     # 2. TÍTULO
     pdf.set_font("Arial", 'B', 22)
-    pdf.set_text_color(10, 42, 67) # Azul Marino
-    pdf.cell(0, 10, txt="Informe de Estado Digital", ln=1, align='C') # 'C' es Center
+    pdf.set_text_color(10, 42, 67)
+    pdf.cell(0, 10, txt="Informe de Estado Digital", ln=1, align='C')
     
-    # 3. DATOS DEL CLIENTE (Centrados)
+    # 3. DATOS DEL CLIENTE (LIMPIOS)
     pdf.set_font("Arial", '', 11)
-    pdf.set_text_color(100, 100, 100) # Gris
-    pdf.cell(0, 6, txt=f"Empresa: {cliente['empresa']}", ln=1, align='C')
-    pdf.cell(0, 6, txt=f"Preparado para: {cliente['nombre']}", ln=1, align='C')
+    pdf.set_text_color(100, 100, 100)
+    
+    # AQUI ESTABA EL ERROR: Aplicamos limpiar_texto a los inputs del usuario
+    txt_empresa = limpiar_texto(f"Empresa: {cliente['empresa']}")
+    txt_cliente = limpiar_texto(f"Preparado para: {cliente['nombre']}")
+    
+    pdf.cell(0, 6, txt=txt_empresa, ln=1, align='C')
+    pdf.cell(0, 6, txt=txt_cliente, ln=1, align='C')
     pdf.ln(5)
 
-    # 4. GRÁFICO (Centrado)
+    # 4. GRÁFICO
     if os.path.exists(chart_path):
-        # (210 ancho hoja - 150 ancho imagen) / 2 = 30 margen X
         pdf.image(chart_path, x=30, w=150)
         pdf.ln(5)
 
-    # 5. PUNTAJE GRANDE
+    # 5. PUNTAJE
     pdf.set_font("Arial", 'B', 18)
     pdf.set_text_color(10, 42, 67)
     pdf.cell(0, 10, txt=f"Tu Calificación Final: {score_total}/100", ln=1, align='C')
     pdf.ln(5)
     
     # 6. RECOMENDACIONES
-    # Barra de título decorativa
-    pdf.set_fill_color(75, 183, 161) # Turquesa
-    pdf.set_text_color(255, 255, 255) # Texto Blanco
+    pdf.set_fill_color(75, 183, 161)
+    pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", 'B', 12)
-    # 0 significa que ocupa todo el ancho disponible (respetando márgenes)
     pdf.cell(0, 10, txt="CONSEJOS PERSONALIZADOS", ln=1, align='C', fill=True)
     pdf.ln(8)
     
-    # Lista de consejos
     pdf.set_font("Arial", size=11)
-    pdf.set_text_color(50, 50, 50) # Gris oscuro para lectura
+    pdf.set_text_color(50, 50, 50)
     
     for rec in recs:
-        # Dibujamos un puntito turquesa
         pdf.set_text_color(75, 183, 161)
-        pdf.cell(8, 8, txt="•", align='C') 
-        
-        # El texto de la recomendación
+        pdf.cell(8, 8, txt="•", align='C')
         pdf.set_text_color(0, 0, 0)
-        # Multi_cell ajusta el texto automáticamente al ancho de los márgenes
-        pdf.multi_cell(0, 8, txt=rec.encode('latin-1', 'replace').decode('latin-1'))
-        pdf.ln(2) # Espacio entre consejos
+        
+        # Aplicamos limpiar_texto también aquí por seguridad
+        txt_rec = limpiar_texto(rec)
+        pdf.multi_cell(0, 8, txt=txt_rec)
+        pdf.ln(2)
             
+    # Retornamos el PDF codificado en latin-1 (ahora seguro porque limpiamos antes)
     return pdf.output(dest='S').encode('latin-1')
 
 # --- INTERFAZ DE USUARIO ---
