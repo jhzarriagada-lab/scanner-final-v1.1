@@ -1,6 +1,14 @@
 [theme]
-primaryColor = "#4BB7A1"
+# Color Principal (Botones, Sliders) -> Naranja Coral
+primaryColor = "#FF7F50"
+
+# Color de Fondo -> Blanco Puro
 backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#E8DCC8"
-textColor = "#333333"
+
+# Color de Fondo Secundario (Barra Lateral) -> Crema Vainilla
+secondaryBackgroundColor = "#FFFBF0"
+
+# Color del Texto -> Gris Oscuro (casi negro para lectura)
+textColor = "#262730"
+
 font = "sans serif"
