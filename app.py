@@ -7,6 +7,7 @@ import os
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+import unicodedata
 
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Scanner Digital", page_icon="🚀", layout="centered")
@@ -27,15 +28,19 @@ elif os.path.exists("logo.jpg"): st.sidebar.image("logo.jpg", use_container_widt
 st.sidebar.write("### ⏱️ Test Rápido")
 st.sidebar.info("Diagnóstico simple para entender tu negocio.")
 
-# --- FUNCIÓN AUXILIAR: LIMPIEZA DE TEXTO (SOLUCIÓN DEL ERROR) ---
+# --- FUNCIÓN DE LIMPIEZA BLINDADA ---
 def limpiar_texto(texto):
     """
-    Esta función toma cualquier texto y elimina caracteres que rompen el PDF (como emojis).
-    Reemplaza los caracteres desconocidos con un signo de interrogación '?'.
+    1. Normaliza caracteres (ej: convierte letras raras en su equivalente más cercano).
+    2. Elimina cualquier cosa que no sea Latin-1.
     """
     if not isinstance(texto, str):
         texto = str(texto)
-    # Codifica a latin-1 (compatible con FPDF) y reemplaza errores, luego vuelve a texto
+    
+    # Normalizar (ayuda con algunas tildes y caracteres especiales)
+    texto = unicodedata.normalize('NFKD', texto).encode('ASCII', 'ignore').decode('ASCII')
+    
+    # Por seguridad, forzamos encode/decode final compatible con FPDF
     return texto.encode('latin-1', 'replace').decode('latin-1')
 
 # --- FUNCIÓN: GUARDAR EN GOOGLE SHEETS ---
@@ -87,11 +92,10 @@ def crear_grafico_comparativo(puntajes_usuario):
     plt.close()
     return nombre
 
-# --- FUNCIÓN PDF ROBUSTA ---
+# --- FUNCIÓN PDF ---
 def generar_pdf(cliente, score_total, recs, chart_path):
     pdf = FPDF()
     pdf.add_page()
-    
     pdf.set_left_margin(20)
     pdf.set_right_margin(20)
     
@@ -110,11 +114,11 @@ def generar_pdf(cliente, score_total, recs, chart_path):
     pdf.set_text_color(10, 42, 67)
     pdf.cell(0, 10, txt="Informe de Estado Digital", ln=1, align='C')
     
-    # 3. DATOS DEL CLIENTE (LIMPIOS)
+    # 3. DATOS DEL CLIENTE
     pdf.set_font("Arial", '', 11)
     pdf.set_text_color(100, 100, 100)
     
-    # AQUI ESTABA EL ERROR: Aplicamos limpiar_texto a los inputs del usuario
+    # Limpiamos los textos antes de ponerlos
     txt_empresa = limpiar_texto(f"Empresa: {cliente['empresa']}")
     txt_cliente = limpiar_texto(f"Preparado para: {cliente['nombre']}")
     
@@ -130,7 +134,7 @@ def generar_pdf(cliente, score_total, recs, chart_path):
     # 5. PUNTAJE
     pdf.set_font("Arial", 'B', 18)
     pdf.set_text_color(10, 42, 67)
-    pdf.cell(0, 10, txt=f"Tu Calificación Final: {score_total}/100", ln=1, align='C')
+    pdf.cell(0, 10, txt=f"Tu Calificacion Final: {score_total}/100", ln=1, align='C')
     pdf.ln(5)
     
     # 6. RECOMENDACIONES
@@ -144,19 +148,19 @@ def generar_pdf(cliente, score_total, recs, chart_path):
     pdf.set_text_color(50, 50, 50)
     
     for rec in recs:
+        # Aquí estaba el error del "•". Lo cambiamos por un ">" que es seguro.
         pdf.set_text_color(75, 183, 161)
-        pdf.cell(8, 8, txt="•", align='C')
-        pdf.set_text_color(0, 0, 0)
+        pdf.cell(8, 8, txt=">", align='C') 
         
-        # Aplicamos limpiar_texto también aquí por seguridad
+        pdf.set_text_color(0, 0, 0)
+        # Limpiamos cada recomendación
         txt_rec = limpiar_texto(rec)
         pdf.multi_cell(0, 8, txt=txt_rec)
         pdf.ln(2)
             
-    # Retornamos el PDF codificado en latin-1 (ahora seguro porque limpiamos antes)
     return pdf.output(dest='S').encode('latin-1')
 
-# --- INTERFAZ DE USUARIO ---
+# --- INTERFAZ ---
 st.title("🚀 ¿Qué tan digital es tu negocio?")
 st.markdown("Responde estas preguntas sencillas para recibir un informe gratuito.")
 
@@ -209,14 +213,13 @@ with st.form("audit_simple"):
     st.markdown("---")
     submitted = st.form_submit_button("📊 Ver mis resultados")
 
-# --- LÓGICA DE PUNTUACIÓN ---
+# --- LÓGICA ---
 if submitted:
     if not nombre or not email:
         st.error("⚠️ Por favor escribe tu nombre y correo arriba.")
     else:
         s_brand = 0; s_web = 0; s_cont = 0; s_ads = 0; s_ventas = 0
         recs = []
-        # LOGICA
         if "definidos" in p1: s_brand += 10
         elif "Solo tengo el logo" in p1: s_brand += 5; recs.append("Imagen: Solo el logo no basta. Define tus colores oficiales.")
         else: recs.append("Imagen: Tu marca se ve desordenada. Define una identidad básica.")
