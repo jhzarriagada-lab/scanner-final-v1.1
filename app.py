@@ -17,7 +17,7 @@ st.set_page_config(page_title="Scanner Digital", page_icon="🍊", layout="cente
 
 # --- ID DE LA CARPETA DE DRIVE (¡PEGALO AQUÍ!) ---
 # Ejemplo: "123456abcdefg..." (Lo sacas de la URL de tu carpeta)
-CARPETA_ID = 1__TtGjCa5ZvV2sFUr08th1keyGuNuO42
+CARPETA_ID = "1__TtGjCa5ZvV2sFUr08th1keyGuNuO42"
 
 # --- ESTILOS VISUALES ---
 st.markdown("""
@@ -237,3 +237,4 @@ if submitted:
             
         st.download_button("📥 Descargar Reporte Color", data=pdf_bytes, file_name="Reporte_Growth.pdf", mime="application/pdf")
         if os.path.exists(chart): os.remove(chart)
+
