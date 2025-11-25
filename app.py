@@ -11,7 +11,7 @@ from datetime import datetime
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Scanner Digital", page_icon="🚀", layout="centered")
 
-# --- ESTILOS VISUALES (Tus colores) ---
+# --- ESTILOS VISUALES ---
 st.markdown("""
     <style>
     h1, h2, h3 { color: #0A2A43 !important; }
@@ -76,7 +76,7 @@ def crear_grafico_comparativo(puntajes_usuario):
     plt.close()
     return nombre
 
-# --- FUNCIÓN PDF (Simplificada) ---
+# --- FUNCIÓN PDF ---
 def generar_pdf(cliente, score_total, recs, chart_path):
     pdf = FPDF()
     pdf.add_page()
@@ -122,19 +122,21 @@ def generar_pdf(cliente, score_total, recs, chart_path):
 st.title("🚀 ¿Qué tan digital es tu negocio?")
 st.markdown("Responde estas preguntas sencillas para recibir un informe gratuito.")
 
+# --- SECCIÓN DE DATOS VISIBLES (CORREGIDO) ---
 with st.expander("📝 Ingresa tus datos para recibir el informe", expanded=True):
     col_a, col_b = st.columns(2)
     nombre = col_a.text_input("Tu Nombre")
     empresa = col_b.text_input("Nombre de tu Negocio")
-    email = st.text_input("Correo Electrónico")
-    # Opcionales ocultos visualmente para limpiar, pero útiles si quieres pedirlos
-    whatsapp = "No indicado" 
-    web_input = "No indicado"
+    
+    col_c, col_d = st.columns(2)
+    email = col_c.text_input("Correo Electrónico")
+    whatsapp = col_d.text_input("WhatsApp / Teléfono (Opcional)")
+    
+    web_input = st.text_input("Sitio Web actual (Si tienes)")
 
 with st.form("audit_simple"):
     
     st.subheader("1. Tu Imagen")
-    # Lenguaje simple: Logo vs Manual
     p1 = st.radio("¿Tienes un logotipo oficial?", 
                   ["Sí, tengo logo, colores y tipos de letra definidos", 
                    "Solo tengo el logo", 
@@ -145,7 +147,6 @@ with st.form("audit_simple"):
 
     st.divider()
     st.subheader("2. Tu presencia en Internet")
-    # Web explicada fácil
     p3 = st.radio("¿Tienes página web?", 
                   ["Sí, una página profesional (o tienda online)", 
                    "Una página básica o Linktree (lista de enlaces)", 
@@ -155,7 +156,6 @@ with st.form("audit_simple"):
 
     st.divider()
     st.subheader("3. Tus Publicaciones")
-    # Slider con más opciones
     p5 = st.select_slider("¿Cada cuánto publicas en redes?", 
                           options=["Nunca", "1 vez al mes", "1 vez por semana", "2-3 veces por semana", "Casi todos los días"])
     
@@ -167,13 +167,11 @@ with st.form("audit_simple"):
 
     st.divider()
     st.subheader("4. Publicidad y Clientes")
-    # Ads explicado sin tecnicismos
     p8 = st.radio("¿Pagas publicidad para que te vea más gente?", 
                   ["Sí, hago campañas avanzadas todos los meses", 
                    "A veces uso el botón azul de 'Promocionar'", 
                    "No, solo publico gratis (orgánico)"])
     
-    # Reemplazo de Pixel y CRM por algo coloquial
     p10 = st.radio("¿Dónde anotas a los clientes que te preguntan o compran?", 
                    ["En un sistema especial (CRM) o Email Marketing", 
                     "En un Excel o cuaderno ordenado", 
@@ -187,7 +185,7 @@ with st.form("audit_simple"):
     st.markdown("---")
     submitted = st.form_submit_button("📊 Ver mis resultados")
 
-# --- LÓGICA DE PUNTUACIÓN (RECALIBRADA) ---
+# --- LÓGICA DE PUNTUACIÓN ---
 if submitted:
     if not nombre or not email:
         st.error("⚠️ Por favor escribe tu nombre y correo arriba.")
@@ -195,52 +193,54 @@ if submitted:
         s_brand = 0; s_web = 0; s_cont = 0; s_ads = 0; s_ventas = 0
         recs = []
 
-        # 1. IMAGEN (Max 20)
+        # LÓGICA
         if "definidos" in p1: s_brand += 10
-        elif "Solo tengo el logo" in p1: s_brand += 5; recs.append("Imagen: Solo el logo no basta. Define tus colores oficiales para que te reconozcan.")
-        else: recs.append("Imagen: Tu marca se ve desordenada. Necesitas definir una identidad visual básica.")
+        elif "Solo tengo el logo" in p1: s_brand += 5; recs.append("Imagen: Solo el logo no basta. Define tus colores oficiales.")
+        else: recs.append("Imagen: Tu marca se ve desordenada. Define una identidad básica.")
         
         if "3 segundos" in p2: s_brand += 10
         else: recs.append("Mensaje: Tu perfil es confuso. Escribe claramente qué vendes en tu biografía.")
 
-        # 2. WEB (Max 20)
         if "profesional" in p3: s_web += 15
         elif "básica" in p3: s_web += 5; recs.append("Web: Estás listo para pasar de una página básica a una web profesional.")
-        else: recs.append("Web: Depender solo de Instagram es peligroso (te pueden borrar la cuenta). Crea una web.")
-        
+        else: recs.append("Web: Depender solo de Instagram es peligroso. Crea una web propia.")
         if p4: s_web += 5
-        else: recs.append("Google: ¡Es gratis aparecer en el mapa! Registra tu negocio en Google Mi Negocio hoy mismo.")
+        else: recs.append("Google: ¡Es gratis aparecer en el mapa! Registra tu negocio hoy mismo.")
 
-        # 3. CONTENIDO (Max 20)
         if p5 == "Casi todos los días": s_cont += 8
         elif "2-3 veces" in p5: s_cont += 5
-        else: recs.append("Constancia: Publicar poco hace que las redes sociales no muestren tu contenido.")
+        else: recs.append("Constancia: Publicar poco hace que las redes te oculten.")
         
         if "más hago" in p6: s_cont += 7
         elif "A veces" in p6: s_cont += 3
-        else: recs.append("Video: Las fotos ya no tienen tanto alcance. Intenta subir al menos un video corto (Reel) a la semana.")
+        else: recs.append("Video: Las fotos ya no tienen alcance. Sube al menos un video (Reel) a la semana.")
         
         if "nos gusta salir" in p7: s_cont += 5
-        else: recs.append("Confianza: La gente compra a personas. Intenta que alguien del equipo salga en las fotos.")
+        else: recs.append("Confianza: La gente compra a personas. Muestra al equipo en cámara.")
 
-        # 4. ADS / PUBLICIDAD (Max 20 - Reajustado sin Pixel)
-        if "campañas avanzadas" in p8: s_ads += 20 # Se lleva todo el puntaje
-        elif "botón azul" in p8: s_ads += 10; recs.append("Publicidad: El botón 'Promocionar' es fácil pero caro. Aprende a usar el Administrador de Anuncios.")
-        else: s_ads += 0; recs.append("Tráfico: Es muy difícil crecer solo gratis. Invierte aunque sea un poco de dinero en publicidad.")
+        if "campañas avanzadas" in p8: s_ads += 20
+        elif "botón azul" in p8: s_ads += 10; recs.append("Publicidad: El botón 'Promocionar' es caro. Usa el Administrador de Anuncios.")
+        else: s_ads += 0; recs.append("Tráfico: Es muy difícil crecer gratis. Invierte un poco en publicidad.")
 
-        # 5. VENTAS (Max 20)
         if "sistema especial" in p10: s_ventas += 10
-        elif "Excel" in p10: s_ventas += 5; recs.append("Datos: El cuaderno se pierde. Pasa tus contactos a un Excel o usa un sistema digital.")
-        else: recs.append("Clientes: Estás perdiendo dinero al no guardar los contactos de quienes te escriben.")
+        elif "Excel" in p10: s_ventas += 5; recs.append("Datos: El cuaderno se pierde. Pasa tus contactos a un Excel.")
+        else: recs.append("Clientes: Estás perdiendo dinero al no guardar los contactos.")
         
         if "instante" in p11: s_ventas += 10
         elif "Durante el día" in p11: s_ventas += 5
-        else: recs.append("Atención: Responder tarde enfría la venta. Intenta usar respuestas guardadas para ser más veloz.")
+        else: recs.append("Atención: Responder tarde enfría la venta. Sé más veloz.")
 
         score_total = min(s_brand + s_web + s_cont + s_ads + s_ventas, 100)
         
-        # Guardar (Intento silencioso)
-        datos_sheet = {'nombre': nombre, 'empresa': empresa, 'email': email, 'whatsapp': whatsapp, 'web': web_input, 'puntaje': score_total}
+        # Guardar en Base de Datos (Ahora sí toma los inputs reales)
+        datos_sheet = {
+            'nombre': nombre, 
+            'empresa': empresa, 
+            'email': email, 
+            'whatsapp': whatsapp, # Ahora esto viene del input
+            'web': web_input,     # Ahora esto viene del input
+            'puntaje': score_total
+        }
         guardar_en_sheets(datos_sheet)
 
         # Mostrar Resultados
@@ -249,7 +249,7 @@ if submitted:
         st.divider()
         c1, c2 = st.columns([1, 2])
         with c1:
-            st.metric("Tu Nota Digital", f"{score_total}/10") # Mostramos sobre 10 para que sea menos duro visualmente? O dejamos 100? Dejemos 100.
+            st.metric("Tu Nota Digital", f"{score_total}/100")
             if score_total < 50: st.error("Hay mucho por mejorar")
             else: st.success("Vas por buen camino")
         with c2:
